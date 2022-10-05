@@ -1,0 +1,275 @@
+Microsoft (R) Macro Assembler Version 5.00                  1/10/22 22:17:47
+                                                             Page     1-1
+
+
+       1				; Program gwiazdki.asm 
+       2				; Wyœwietlanie znaków * w takt przerwañ
+					 zegarowych 
+       3				; Uruchomienie w trybie rzeczywistym pr
+					ocesora x86 
+       4				; lub na maszynie wirtualnej 
+       5				; zakoñczenie programu po naciœniêciu k
+					lawisza 'x' 
+       6				; asemblacja (MASM 4.0): masm gwiazdki.
+					asm,,,; 
+       7				; konsolidacja (LINK 3.60): link gwiazd
+					ki.obj; 
+       8				.386 
+       9 0000				rozkazy SEGMENT use16 
+      10				ASSUME CS:rozkazy 
+      11				 
+      12 0000				wyswietl_AL PROC 
+      13				; wyœwietlanie zawartoœci rejestru AL n
+					a ekranie wg adresu 
+      14				; podanego w ES:BX 
+      15				; stosowany jest bezpoœredni zapis do p
+					amiêci ekranu 
+      16				; przechowanie rejestrów 
+      17 0000  50			push ax 
+      18 0001  51			push cx 
+      19 0002  52			push dx 
+      20				 
+      21 0003  26: 88 07		mov es:[bx+0], al ; cyfra setek 
+      22				; wpisanie kodu koloru (intensywny bia³
+					y) do pamiêci ekranu 
+      23 0006  B0 0F			mov al, 00001111B 
+      24 0008  26: 88 47 01		mov es:[bx+1],al 
+      25 000C  26: 88 47 03		mov es:[bx+3],al 
+      26 0010  26: 88 47 05		mov es:[bx+5],al 
+      27				; odtworzenie rejestrów 
+      28 0014  5A			pop dx 
+      29 0015  59			pop cx 
+      30 0016  58			pop ax 
+      31 0017  C3			ret ; wyjœcie z podprogramu 
+      32 0018				wyswietl_AL ENDP 
+      33				 
+      34				;======================================
+					====================== 
+      35				; procedura obs³ugi przerwania zegarowe
+					go 
+      36 0018				obsluga_zegara PROC 
+      37				; przechowanie u¿ywanych rejestrów 
+      38 0018  50			push ax 
+      39 0019  53			push bx 
+      40 001A  06			push es 
+      41 001B  51			push cx 
+      42 001C  52			push dx 
+      43				 
+      44 001D  2E: A0 0097 R		mov al, cs:kolumny 
+Microsoft (R) Macro Assembler Version 5.00                  1/10/22 22:17:47
+                                                             Page     1-2
+
+
+      45 0021  3C 00			cmp al, 0 
+      46 0023  0F 84 0082 R		je koniec 
+      47 0027  FE C8			dec al 
+      48 0029  2E: A2 0097 R		mov byte PTR cs:kolumny, al 
+      49				; wpisanie adresu pamiêci ekranu do rej
+					estru ES - pamiêæ 
+      50				; ekranu dla trybu tekstowego zaczyna s
+					iê od adresu B8000H, 
+      51				; jednak do rejestru ES wpisujemy warto
+					œæ B800H, 
+      52				; bo w trakcie obliczenia adresu proces
+					or ka¿dorazowo mno¿y 
+      53				; zawartoœæ rejestru ES przez 16 
+      54 002D  B8 B800			mov ax, 0B800h ;adres pamiêci ekranu 
+      55 0030  8E C0			mov es, ax 
+      56				 
+      57 0032  2E: A0 0092 R		mov al, cs:index_znaku 
+      58 0036  3C 04			cmp al, 4 
+      59 0038  0F 82 0042 R		jb wyswietl_znak 
+      60 003C  B0 00			mov al, 0 
+      61 003E  2E: A2 0092 R		mov byte PTR cs:index_znaku, al 
+      62				 
+      63 0042				wyswietl_znak: 
+      64 0042  0F B6 D8			movzx bx, al 
+      65 0045  2E: 8A 87 0093 R		mov al, cs:znaki[bx] 
+      66				 
+      67 004A  26: A2 0026		mov byte PTR es:[38], al ; kod ASCII 
+      68 004E  26: C6 06 0027 07	mov byte PTR es:[38+1], 00000111B ; kol
+					or 
+      69				 
+      70				; zmienna 'licznik' zawiera adres bie¿¹
+					cy w pamiêci ekranu 
+      71 0054  2E: 8B 1E 008C R		mov bx, cs:licznik 
+      72				; przes³anie do pamiêci ekranu kodu ASC
+					II wyœwietlanego znaku 
+      73				; i kodu koloru: bia³y na czarnym tle (
+					do nastêpnego bajtu) 
+      74 0059  26: C6 07 2A		mov byte PTR es:[bx], '*' ; kod ASCII 
+      75 005D  26: C6 47 01 07		mov byte PTR es:[bx+1], 00000111B ; kol
+					or 
+      76				 
+      77				;inkrementacja wyswietlanego znaku 
+      78 0062  2E: A0 0092 R		mov al, cs:index_znaku 
+      79 0066  FE C0			inc al 
+      80 0068  2E: A2 0092 R		mov byte PTR cs:index_znaku, al 
+      81				 
+      82				; zwiêkszenie o 2 adresu bie¿¹cego w pa
+					miêci ekranu 
+      83 006C  81 C3 00A0		add bx,160 
+      84				; sprawdzenie czy adres bie¿¹cy osi¹gn¹
+					³ koniec pamiêci ekranu 
+      85 0070  2E: A0 0097 R		mov al, cs:kolumny 
+      86 0074  3C 18			cmp al, 24 
+      87 0076  0F 82 007D R		jb wysw_dalej ; skok gdy nie koniec ekr
+Microsoft (R) Macro Assembler Version 5.00                  1/10/22 22:17:47
+                                                             Page     1-3
+
+
+					anu 
+      88				; wyzerowanie adresu bie¿¹cego, gdy ca³
+					y ekran zapisany 
+      89 007A  BB 0000			mov bx, 0 
+      90				;zapisanie adresu bie¿¹cego do zmiennej
+					 'licznik' 
+      91 007D				wysw_dalej: 
+      92 007D  2E: 89 1E 008C R		mov cs:licznik,bx 
+      93				; odtworzenie rejestrów 
+      94 0082				koniec: 
+      95 0082  5A			pop dx 
+      96 0083  59			pop cx 
+      97 0084  07			pop es 
+      98 0085  5B			pop bx 
+      99 0086  58			pop ax 
+     100				; skok do oryginalnej procedury obs³ugi
+					 przerwania zegarowego 
+     101 0087  2E: FF 2E 008E R		jmp dword PTR cs:wektor8 
+     102				; dane programu ze wzglêdu na specyfikê
+					 obs³ugi przerwañ 
+     103				; umieszczone s¹ w segmencie kodu 
+     104 008C  0166			licznik dw 358 ; wyœwietlanie pocz¹wszy
+					 od 2. wiersza 
+     105 008E  ????????			wektor8 dd ? 
+     106 0092  00			index_znaku db 0 
+     107 0093  5C 7C 2F 7C		znaki db "\|/|" 
+     108 0097  18			kolumny db 24 
+     109 0098				obsluga_zegara ENDP 
+     110				;======================================
+					====================== 
+     111				; program g³ówny - instalacja i deinsta
+					lacja procedury 
+     112				; obs³ugi przerwañ 
+     113				; ustalenie strony nr 0 dla trybu tekst
+					owego 
+     114 0098				zacznij: 
+     115 0098  B0 00			mov al, 0 
+     116 009A  B4 05			mov ah, 5 
+     117 009C  CD 0A			int 10 
+     118 009E  B8 0000			mov ax, 0 
+     119 00A1  8E D8			mov ds,ax ; zerowanie rejestru DS 
+     120				; odczytanie zawartoœci wektora nr 8 i 
+					zapisanie go 
+     121				; w zmiennej 'wektor8' (wektor nr 8 zaj
+					muje w pamiêci 4 bajty 
+     122				; pocz¹wszy od adresu fizycznego 8 * 4 
+					= 32) 
+     123 00A3  66| A1 0020		mov eax,ds:[32] ; adres fizyczny 0*16 +
+					 32 = 32 
+     124 00A7  2E: 66| A3 008E R	mov cs:wektor8, eax 
+     125				 
+     126				; wpisanie do wektora nr 8 adresu proce
+					dury 'obsluga_zegara' 
+     127 00AC  B8 ---- R		mov ax, SEG obsluga_zegara ; czêœæ segm
+Microsoft (R) Macro Assembler Version 5.00                  1/10/22 22:17:47
+                                                             Page     1-4
+
+
+					entowa adresu 
+     128 00AF  BB 0018 R		mov bx, OFFSET obsluga_zegara ; offset 
+					adresu 
+     129 00B2  FA			cli ; zablokowanie przerwañ 
+     130				; zapisanie adresu procedury do wektora
+					 nr 8 
+     131 00B3  89 1E 0020		mov ds:[32], bx ; OFFSET 
+     132 00B7  A3 0022			mov ds:[34], ax ; cz. segmentowa 
+     133 00BA  FB			sti ;odblokowanie przerwañ 
+     134				; oczekiwanie na naciœniêcie klawisza '
+					x' 
+     135 00BB				aktywne_oczekiwanie: 
+     136 00BB  B4 01			mov ah,1 
+     137 00BD  CD 16			int 16H 
+     138				; funkcja INT 16H (AH=1) BIOSu ustawia 
+					ZF=1 jeœli 
+     139				; naciœniêto jakiœ klawisz 
+     140 00BF  74 FA			jz aktywne_oczekiwanie 
+     141				; odczytanie kodu ASCII naciœniêtego kl
+					awisza (INT 16H, AH=0) 
+     142				; do rejestru AL 
+     143				;mov ah, 0 
+     144				;int 16H 
+     145				;cmp al, 'x' ; porównanie z kodem liter
+					y 'x' 
+     146 00C1  2E: A0 0097 R		mov al, cs:kolumny 
+     147 00C5  3C 00			cmp al, 0 
+     148 00C7  75 F2			jne aktywne_oczekiwanie ; skok, gdy inn
+					y znak 
+     149				; deinstalacja procedury obs³ugi przerw
+					ania zegarowego 
+     150				; odtworzenie oryginalnej zawartoœci we
+					ktora nr 8 
+     151 00C9  2E: 66| A1 008E R	mov eax, cs:wektor8 
+     152 00CE  FA			cli 
+     153 00CF  66| A3 0020		mov ds:[32], eax ; przes³anie wartoœci 
+					oryginalnej 
+     154				; do wektora 8 w tablicy wektorów 
+     155				; przerwañ 
+     156 00D3  FB			sti 
+     157				; zakoñczenie programu 
+     158 00D4  B0 00			mov al, 0 
+     159 00D6  B4 4C			mov ah, 4CH 
+     160 00D8  CD 21			int 21H 
+     161 00DA				rozkazy ENDS 
+     162 0000				nasz_stos SEGMENT stack 
+     163 0000  0080[			db 128 dup (?) 
+     164	    ??			
+     165			 ]	
+     166				
+     167 0080				nasz_stos ENDS 
+     168				END zacznij 
+Microsoft (R) Macro Assembler Version 5.00                  1/10/22 22:17:47
+                                                             Symbols-1
+
+
+
+
+                N a m e         	Size	Length	 Align	Combine Class
+
+NASZ_STOS  . . . . . . . . . . .  	32 Bit	0080	PARA	STACK	
+ROZKAZY  . . . . . . . . . . . .  	16 Bit	00DA	PARA	NONE	
+
+Symbols:            
+
+                N a m e         	Type	 Value	 Attr
+
+AKTYWNE_OCZEKIWANIE  . . . . . .  	L NEAR	00BB	ROZKAZY
+
+INDEX_ZNAKU  . . . . . . . . . .  	L BYTE	0092	ROZKAZY
+
+KOLUMNY  . . . . . . . . . . . .  	L BYTE	0097	ROZKAZY
+KONIEC . . . . . . . . . . . . .  	L NEAR	0082	ROZKAZY
+
+LICZNIK  . . . . . . . . . . . .  	L WORD	008C	ROZKAZY
+
+OBSLUGA_ZEGARA . . . . . . . . .  	N PROC	0018	ROZKAZY	Length = 0080
+
+WEKTOR8  . . . . . . . . . . . .  	L DWORD	008E	ROZKAZY
+WYSWIETL_AL  . . . . . . . . . .  	N PROC	0000	ROZKAZY	Length = 0018
+WYSWIETL_ZNAK  . . . . . . . . .  	L NEAR	0042	ROZKAZY
+WYSW_DALEJ . . . . . . . . . . .  	L NEAR	007D	ROZKAZY
+
+ZACZNIJ  . . . . . . . . . . . .  	L NEAR	0098	ROZKAZY
+ZNAKI  . . . . . . . . . . . . .  	L BYTE	0093	ROZKAZY
+
+@FILENAME  . . . . . . . . . . .  	TEXT  ZAD1		
+
+
+    165 Source  Lines
+    165 Total   Lines
+     16 Symbols
+
+  50408 + 466136 Bytes symbol space free
+
+      0 Warning Errors
+      0 Severe  Errors

@@ -1,0 +1,6 @@
+
+ Start  Stop   Length Name                   Class
+ 00000H 000A4H 000A5H ROZKAZY                
+ 000B0H 0012FH 00080H NASZ_STOS              
+
+Program entry point at 0000:0063

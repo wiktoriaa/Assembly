@@ -1,0 +1,6 @@
+
+ Start  Stop   Length Name                   Class
+ 00000H 0008CH 0008DH ROZKAZY                
+ 00090H 0018FH 00100H STOSIK                 
+
+Program entry point at 0000:004C
